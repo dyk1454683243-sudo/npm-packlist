@@ -23,8 +23,8 @@ t.test('excludes .tgz package tarballs by default', async (t) => {
   const tree = await arborist.loadActual()
   const files = await packlist(tree)
   t.same(files, [
-    'fixtures/keep.js',
     'index.js',
+    'fixtures/keep.js',
     'package.json',
   ])
 })
@@ -51,10 +51,10 @@ t.test('can re-include .tgz files with negated .npmignore rules', async (t) => {
   const tree = await arborist.loadActual()
   const files = await packlist(tree)
   t.same(files, [
-    'fixtures/keep.js',
-    'fixtures/nested.tgz',
     'index.js',
+    'fixtures/keep.js',
     'package.json',
+    'fixtures/nested.tgz',
     'test-package-1.0.0.tgz',
   ])
 })
