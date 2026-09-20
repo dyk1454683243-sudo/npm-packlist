@@ -55,6 +55,7 @@ This uses the following rules:
     5. Waf and gyp cruft like `/build/config.gypi` and `.lock-wscript`
     6. Darwin's `.DS_Store` files because wtf are those even
     7. `npm-debug.log` files at the root of a project
+    8. `*.tgz` package tarballs (typically leftover `npm pack` results)
 
     You can explicitly re-include most of these with a negated ignore file rule.
     A small set of files are always ignored regardless of `files` rules:
