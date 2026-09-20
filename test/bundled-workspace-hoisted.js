@@ -211,8 +211,8 @@ t.test('includes transitive hoisted deps of a bundled workspace dependency', asy
     'index.js',
     'node_modules/history/index.js',
     'node_modules/history/node_modules/minizlib/index.js',
-    'node_modules/history/package.json',
     'node_modules/history/node_modules/minizlib/package.json',
+    'node_modules/history/package.json',
     'package.json',
   ])
 })
@@ -388,8 +388,8 @@ t.test('includes cyclic hoisted bundled dependencies without looping', async (t)
     'index.js',
     'node_modules/a/index.js',
     'node_modules/a/node_modules/b/index.js',
-    'node_modules/a/package.json',
     'node_modules/a/node_modules/b/package.json',
+    'node_modules/a/package.json',
     'package.json',
   ])
 })
@@ -488,6 +488,80 @@ t.test('path-walks hoisted deps when a non-root tree has no edgesOut', async (t)
     prefix: root,
     workspaces: [workspacePath],
   })
+  t.same(files, [
+    'index.js',
+    'node_modules/history/index.js',
+    'node_modules/history/package.json',
+    'package.json',
+  ])
+})
+
+t.test('skips peer and dev edges and nodes with no target', async (t) => {
+  const root = t.testdir({
+    pkg: {
+      'package.json': JSON.stringify({
+        name: 'pkg',
+        version: '1.0.0',
+        main: 'index.js',
+        bundleDependencies: ['history', 'peerdep', 'devdep', 'broken'],
+      }),
+      'index.js': elfJS,
+    },
+    node_modules: {
+      history: {
+        'package.json': JSON.stringify({
+          name: 'history',
+          version: '1.0.0',
+          main: 'index.js',
+        }),
+        'index.js': elfJS,
+      },
+      peerdep: {
+        'package.json': JSON.stringify({
+          name: 'peerdep',
+          version: '1.0.0',
+        }),
+        'index.js': elfJS,
+      },
+      devdep: {
+        'package.json': JSON.stringify({
+          name: 'devdep',
+          version: '1.0.0',
+        }),
+        'index.js': elfJS,
+      },
+    },
+  })
+
+  const pkgDir = path.join(root, 'pkg')
+  const historyPath = path.join(root, 'node_modules', 'history')
+  const historyNode = {
+    path: historyPath,
+    package: { name: 'history', version: '1.0.0', main: 'index.js' },
+    isLink: false,
+    isProjectRoot: false,
+    edgesOut: new Map(),
+  }
+  historyNode.target = historyNode
+
+  const tree = {
+    path: pkgDir,
+    package: {
+      name: 'pkg',
+      version: '1.0.0',
+      bundleDependencies: ['history', 'peerdep', 'devdep', 'broken'],
+    },
+    isProjectRoot: true,
+    edgesOut: new Map([
+      ['history', { to: historyNode, peer: false, dev: false }],
+      ['peerdep', { to: { path: path.join(root, 'node_modules', 'peerdep'), target: null }, peer: true, dev: false }],
+      ['devdep', { to: { path: path.join(root, 'node_modules', 'devdep'), target: null }, peer: false, dev: true }],
+      ['broken', { to: { path: historyPath, isLink: false, target: null }, peer: false, dev: false }],
+    ]),
+    workspaces: null,
+  }
+
+  const files = await packlist(tree, { path: pkgDir })
   t.same(files, [
     'index.js',
     'node_modules/history/index.js',
